@@ -18,12 +18,12 @@
 	__asm__ __volatile__ ("vf %0" : : "A" (p))
 
 
-extern void bli_sgemm_hwacha_16xn_vf_init(void);
-extern void bli_sgemm_hwacha_16xn_vf_init_beta(void);
-extern void bli_sgemm_hwacha_16xn_vf_tail(void);
-extern void bli_sgemm_hwacha_16xn_vf_inner_0(void);
-extern void bli_sgemm_hwacha_16xn_vf_inner_1(void);
-extern void bli_sgemm_hwacha_16xn_vf_end(void);
+extern void bli_sgemm_hwacha_16xn_vf_init(void) __attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_init_beta(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_tail(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_inner_0(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_inner_1(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_end(void)__attribute__((visibility("protected")));
 
 void bli_sgemm_hwacha_16xn
      (
