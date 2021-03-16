@@ -1,7 +1,7 @@
 CC := riscv64-unknown-elf-gcc
 OBJDUMP := riscv64-unknown-elf-objdump
 
-CFLAGS := -march=rv64gcxhwacha -O2 -std=c99 -Wall -specs=htif_nano.specs
+CFLAGS := -march=rv64gcxhwacha -O2 -std=c99 -Wall -specs=htif_nano.specs -g
 
 .PHONY: all
 all: sgemm.dump

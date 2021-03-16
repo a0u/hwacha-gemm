@@ -54,10 +54,13 @@ bli_sgemm_hwacha_16xn_vf_init_beta:
 
 	.align 3
 	.global bli_sgemm_hwacha_16xn_vf_inner_0
+	.global bli_sgemm_hwacha_16xn_vf_tail_0
 bli_sgemm_hwacha_16xn_vf_inner_0:
-	/* Software pipeline: Fetch next row of B */
+	/* Software pipeline: Preload next row of B */
 	vlw vv17, va16
-	vfmul.s vv16, vv16, vs63 /* alpha * B[k][_] */
+bli_sgemm_hwacha_16xn_vf_tail_0:
+	/* alpha * B[k][_] */
+	vfmul.s vv16, vv16, vs63
 	.set i, 0
 	.rept MR
 	/* C[i][_] += A[i][k] * B[k][_] */
@@ -68,27 +71,17 @@ bli_sgemm_hwacha_16xn_vf_inner_0:
 
 	.align 3
 	.global bli_sgemm_hwacha_16xn_vf_inner_1
+	.global bli_sgemm_hwacha_16xn_vf_tail_1
 bli_sgemm_hwacha_16xn_vf_inner_1:
-	/* Software pipeline: Fetch next row of B */
+	/* Software pipeline: Preload next row of B */
 	vlw vv16, va16
-	vfmul.s vv17, vv17, vs63 /* alpha * B[k+1][_] */
+bli_sgemm_hwacha_16xn_vf_tail_1:
+	/* alpha * B[k+1][_] */
+	vfmul.s vv17, vv17, vs63
 	.set i, 0
 	.rept MR
 	/* C[i][_] += A[i][k+1] * B[k+1][_] */
 	OP vfmadd.s vv,%i, vv17,, vs,%(i+1), vv,%i
-	.set i, i+1
-	.endr
-	vstop
-
-	.align 3
-	.global bli_sgemm_hwacha_16xn_vf_tail
-bli_sgemm_hwacha_16xn_vf_tail:
-	/* Software pipeline epilogue */
-	vfmul.s vv16, vv16, vs63 /* alpha * B[k][_] */
-	.set i, 0
-	.rept MR
-	/* C[i][_] += A[i][k] * B[k][_] */
-	OP vfmadd.s vv,%i, vv16,, vs,%(i+1), vv,%i
 	.set i, i+1
 	.endr
 	vstop

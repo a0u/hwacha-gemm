@@ -20,10 +20,34 @@
 
 extern void bli_sgemm_hwacha_16xn_vf_init(void) __attribute__((visibility("protected")));
 extern void bli_sgemm_hwacha_16xn_vf_init_beta(void)__attribute__((visibility("protected")));
-extern void bli_sgemm_hwacha_16xn_vf_tail(void)__attribute__((visibility("protected")));
 extern void bli_sgemm_hwacha_16xn_vf_inner_0(void)__attribute__((visibility("protected")));
 extern void bli_sgemm_hwacha_16xn_vf_inner_1(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_tail_0(void)__attribute__((visibility("protected")));
+extern void bli_sgemm_hwacha_16xn_vf_tail_1(void)__attribute__((visibility("protected")));
 extern void bli_sgemm_hwacha_16xn_vf_end(void)__attribute__((visibility("protected")));
+
+static inline void bli_sgemm_hwacha_16xn_load_a
+     (
+       const float* restrict a
+     )
+{
+	vmcs(vs1, a[0]);
+	vmcs(vs2, a[1]);
+	vmcs(vs3, a[2]);
+	vmcs(vs4, a[3]);
+	vmcs(vs5, a[4]);
+	vmcs(vs6, a[5]);
+	vmcs(vs7, a[6]);
+	vmcs(vs8, a[7]);
+	vmcs(vs9, a[8]);
+	vmcs(vs10, a[9]);
+	vmcs(vs11, a[10]);
+	vmcs(vs12, a[11]);
+	vmcs(vs13, a[12]);
+	vmcs(vs14, a[13]);
+	vmcs(vs15, a[14]);
+	vmcs(vs16, a[15]);
+}
 
 void bli_sgemm_hwacha_16xn
      (
@@ -67,66 +91,48 @@ void bli_sgemm_hwacha_16xn
 	}
 
 	vmcs(vs63, *alpha);
-	for (; k0 > 1; k0 -= 2) {
-		vmcs(vs1, a[0]);
-		vmcs(vs2, a[1]);
-		vmcs(vs3, a[2]);
-		vmcs(vs4, a[3]);
-		vmcs(vs5, a[4]);
-		vmcs(vs6, a[5]);
-		vmcs(vs7, a[6]);
-		vmcs(vs8, a[7]);
-		vmcs(vs9, a[8]);
-		vmcs(vs10, a[9]);
-		vmcs(vs11, a[10]);
-		vmcs(vs12, a[11]);
-		vmcs(vs13, a[12]);
-		vmcs(vs14, a[13]);
-		vmcs(vs15, a[14]);
-		vmcs(vs16, a[15]);
+
+	/*
+	 * FIXME: Hack around suboptimal gcc code generation with
+	 * for (; k0 > 2; k0 -= 2)
+	 *
+	 * When written as a for loop, the `a' and `b' pointers are
+	 * unnecessarily recomputed in the software pipeline epilogue,
+	 * rather than reusing the updated pointers from the loop.
+	 */
+	__asm__ goto (
+		/* if (k0 <= 2) goto tail; */
+		"bleu %0, %1, %l[tail]"
+		:
+		: "r" (k0), "r" (2)
+		:
+		: tail);
+
+	do {
+
+		bli_sgemm_hwacha_16xn_load_a(a);
 		vmca(va16, b);
 		vf(bli_sgemm_hwacha_16xn_vf_inner_0);
 		b += rs_c0;
 
-		vmcs(vs1, a[16]);
-		vmcs(vs2, a[17]);
-		vmcs(vs3, a[18]);
-		vmcs(vs4, a[19]);
-		vmcs(vs5, a[20]);
-		vmcs(vs6, a[21]);
-		vmcs(vs7, a[22]);
-		vmcs(vs8, a[23]);
-		vmcs(vs9, a[24]);
-		vmcs(vs10, a[25]);
-		vmcs(vs11, a[26]);
-		vmcs(vs12, a[27]);
-		vmcs(vs13, a[28]);
-		vmcs(vs14, a[29]);
-		vmcs(vs15, a[30]);
-		vmcs(vs16, a[31]);
+		bli_sgemm_hwacha_16xn_load_a(a + BLIS_MR);
 		vmca(va16, b);
 		vf(bli_sgemm_hwacha_16xn_vf_inner_1);
 		b += rs_c0;
-		a += 2 * BLIS_MR;
-	}
-	if (k0 > 0) {
-		vmcs(vs1, a[0]);
-		vmcs(vs2, a[1]);
-		vmcs(vs3, a[2]);
-		vmcs(vs4, a[3]);
-		vmcs(vs5, a[4]);
-		vmcs(vs6, a[5]);
-		vmcs(vs7, a[6]);
-		vmcs(vs8, a[7]);
-		vmcs(vs9, a[8]);
-		vmcs(vs10, a[9]);
-		vmcs(vs11, a[10]);
-		vmcs(vs12, a[11]);
-		vmcs(vs13, a[12]);
-		vmcs(vs14, a[13]);
-		vmcs(vs15, a[14]);
-		vmcs(vs16, a[15]);
-		vf(bli_sgemm_hwacha_16xn_vf_tail);
+		a += 2*BLIS_MR;
+		k0 -= 2;
+	} while (k0 > 2);
+
+tail:
+	bli_sgemm_hwacha_16xn_load_a(a);
+	if (k0 > 1) {
+		vmca(va16, b);
+		vf(bli_sgemm_hwacha_16xn_vf_inner_0);
+
+		bli_sgemm_hwacha_16xn_load_a(a + BLIS_MR);
+		vf(bli_sgemm_hwacha_16xn_vf_tail_1);
+	} else {
+		vf(bli_sgemm_hwacha_16xn_vf_tail_0);
 	}
 
 	vf(bli_sgemm_hwacha_16xn_vf_end);
